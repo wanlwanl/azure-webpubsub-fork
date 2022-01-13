@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "AwpsGrpcMode";
+
+package awps;
+
+service WebPubSub {
+  rpc StartListening(StartListeningRequest) returns (stream Event);
+  rpc AckConnectEvent (AckConnectEventRequest) returns (AckConnectEventResponse);
+  rpc AckUserEvent (AckUserEventRequest) returns (AckUserEventResponse);
+  rpc SendToAll (SendToAllRequest) returns (SendToAllResponse);
+  rpc SendToGroup (SendToGroupRequest) returns (SendToGroupResponse);
+}
+
+message StartListeningRequest {
+    repeated string interested_events = 1;
+}
+
+message Event {
+    oneof message {
+      ConnectEvent connect_event = 1;
+      ConnectedEvent connected_event = 2;
+      DisconnectedEvent disconnected_event = 3;
+      UserEvent user_event = 20;
+    }
+}
+
+message ConnectEvent {
+    int32 ack_id = 1;
+    RequestContext context = 2;
+    repeated string sub_protocols = 3;
+    repeated Certificate client_certificates = 4;
+
+    message Certificate {
+        string thumbprint = 1;
+    }
+}
+
+message ConnectedEvent {
+    int32 ack_id = 1;
+    RequestContext context = 2;
+    string error = 3;
+}
+message DisconnectedEvent {
+    int32 ack_id = 1;
+    RequestContext context = 2;
+    string error = 3;
+}
+
+message UserEvent {
+    int32 ack_id = 1;
+    RequestContext context = 2;
+    PayloadDetail payload = 3;
+}
+
+message RequestContext {
+    string connection_id = 1;
+    google.protobuf.StringValue user_id = 2;
+    google.protobuf.StringValue hub = 3;
+    repeated string claim_strings = 4;
+    map<string, string> claims = 5;
+    map<string, string> headers = 6;
+    map<string, string> query = 7;
+}
+
+message PayloadDetail {
+    PayloadTransferFormat format = 1;
+    bytes content = 2;
+
+    enum PayloadTransferFormat {
+        TEXT = 0;
+        BINARY = 1;
+    }
+}
+
+message ResponseError {
+    int32 code = 1;
+    google.protobuf.StringValue detail = 2;
+}
+
+message AckConnectEventRequest{
+
+}
+
+message AckConnectEventResponse{
+
+}
+
+message AckUserEventRequest {
+  string name = 1;
+}
+message AckUserEventResponse {
+  string name = 1;
+}
+
+message SendToGroupResponse{
+
+}
+
+message SendToAllRequest {
+  string message = 1;
+}
+
+message SendToAllResponse{
+
+}
+message SendToGroupRequest {
+  string message = 1;
+}
+
+enum ChangeType {
+    UNKNOWN_CHANGE_TYPE = 0;
+    CREATE = 1;
+    UPDATE = 2;
+    DELETE = 3;
+}
