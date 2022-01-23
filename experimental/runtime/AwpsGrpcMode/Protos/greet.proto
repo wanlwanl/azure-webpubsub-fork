@@ -9,17 +9,44 @@ package awps;
 
 service WebPubSub {
   rpc StartListening(StartListeningRequest) returns (stream Event);
-  rpc AckConnectEvent (AckConnectEventRequest) returns (AckConnectEventResponse);
-  rpc AckUserEvent (AckUserEventRequest) returns (AckUserEventResponse);
-  rpc SendToAll (SendToAllRequest) returns (SendToAllResponse);
-  rpc SendToGroup (SendToGroupRequest) returns (SendToGroupResponse);
+  rpc ApproveConnection (ApproveConnectionMessage) returns (google.protobuf.Empty);
+  rpc SendToAll (SendToAllRequest) returns (google.protobuf.Empty);
+  rpc SendToGroup (SendToGroupRequest) returns (google.protobuf.Empty);
 }
 
 message StartListeningRequest {
-    repeated string interested_events = 1;
+    string hub = 1;
+    string serverName = 2;
+    repeated string interested_events = 3;
+}
+message Event{
+    oneof event {
+        ServiceMaintainanceEvent service_event = 1;
+        ClientConnectionEvent connection_event = 2;
+    }
 }
 
-message Event {
+message ServiceMaintainanceEvent {
+    oneof message{
+        RebalanceEvent rebalance = 1;
+        ReloadEvent reload = 2;
+        ScaleupEvent scaleup = 3;
+    }
+}
+
+message RebalanceEvent{
+    string target_id = 1;
+}
+
+
+message ReloadEvent{
+}
+
+message ScaleupEvent{
+
+}
+
+message ClientConnectionEvent {
     oneof message {
       ConnectEvent connect_event = 1;
       ConnectedEvent connected_event = 2;
@@ -29,7 +56,7 @@ message Event {
 }
 
 message ConnectEvent {
-    int32 ack_id = 1;
+    string connection_id = 1;
     RequestContext context = 2;
     repeated string sub_protocols = 3;
     repeated Certificate client_certificates = 4;
@@ -40,40 +67,57 @@ message ConnectEvent {
 }
 
 message ConnectedEvent {
-    int32 ack_id = 1;
+    string connection_id = 1;
     RequestContext context = 2;
-    string error = 3;
 }
 message DisconnectedEvent {
-    int32 ack_id = 1;
+    string connection_id = 1;
     RequestContext context = 2;
-    string error = 3;
+    string reason = 3;
 }
 
 message UserEvent {
-    int32 ack_id = 1;
-    RequestContext context = 2;
-    PayloadDetail payload = 3;
+    string connection_id = 1;
+    int32 user_event_id = 2;
+    RequestContext context = 3;
+    PayloadDetail payload = 4;
 }
 
 message RequestContext {
     string connection_id = 1;
     google.protobuf.StringValue user_id = 2;
     google.protobuf.StringValue hub = 3;
-    repeated string claim_strings = 4;
-    map<string, string> claims = 5;
-    map<string, string> headers = 6;
-    map<string, string> query = 7;
+    google.protobuf.StringValue state = 4;
+    repeated string claim_strings = 5;
+    map<string, string> claims = 6;
+    map<string, string> headers = 7;
+    map<string, string> query = 8;
 }
 
 message PayloadDetail {
-    PayloadTransferFormat format = 1;
-    bytes content = 2;
-
-    enum PayloadTransferFormat {
-        TEXT = 0;
-        BINARY = 1;
+    oneof payload {
+        TextPayload text = 1;
+        JsonPayload json = 2;
+        BinaryPayload binary = 3;
     }
+}
+
+message TextPayload {
+    oneof data {
+        bytes binaryContent = 1;
+        google.protobuf.StringValue stringContent = 2;
+    }
+}
+
+message JsonPayload {
+    oneof data {
+        bytes binaryContent = 1;
+        google.protobuf.StringValue stringContent = 2;
+    }
+}
+
+message BinaryPayload {
+    bytes data = 1;
 }
 
 message ResponseError {
@@ -81,39 +125,64 @@ message ResponseError {
     google.protobuf.StringValue detail = 2;
 }
 
-message AckConnectEventRequest{
+message ApproveConnectionMessage {
+    string hub = 1;
+    string connection_id = 2;
 
+    oneof response {
+        ConnectEventSuccessMessage success = 3;
+        ResponseError error = 4;
+    }
 }
 
-message AckConnectEventResponse{
+message ConnectEventSuccessMessage {
+    repeated string roles = 1;
+    repeated string groups = 2;
+    google.protobuf.StringValue user_id = 3;
+    google.protobuf.StringValue sub_protocol = 4;
+    google.protobuf.StringValue state = 5;
+}
 
+message AckConnectEventResponse {
+    // Empty response, preserve the class for forward compatability
 }
 
 message AckUserEventRequest {
-  string name = 1;
+    string connection_id = 1;
+    int32 user_event_id = 2;
+
+    oneof response {
+        UserEventSuccessMessage success = 3;
+        ResponseError error = 4;
+    }
 }
+
+message UserEventSuccessMessage {
+    oneof response {
+        google.protobuf.Empty empty = 2;
+        PayloadDetail payload = 3;
+    }
+}
+
 message AckUserEventResponse {
-  string name = 1;
-}
-
-message SendToGroupResponse{
-
+    // Empty response, preserve the class for forward compatability
 }
 
 message SendToAllRequest {
-  string message = 1;
+   PayloadDetail payload = 1;
+   repeated string excluded_connection_id = 2;
 }
 
 message SendToAllResponse{
-
+    // Empty response, preserve the class for forward compatability
 }
+
 message SendToGroupRequest {
-  string message = 1;
+   string group = 1;
+   PayloadDetail payload = 2;
+   repeated string excluded_connection_id = 3;
 }
 
-enum ChangeType {
-    UNKNOWN_CHANGE_TYPE = 0;
-    CREATE = 1;
-    UPDATE = 2;
-    DELETE = 3;
+message SendToGroupResponse{
+    // Empty response, preserve the class for forward compatability
 }

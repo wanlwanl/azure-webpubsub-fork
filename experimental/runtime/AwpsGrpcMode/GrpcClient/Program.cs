@@ -26,16 +26,28 @@ namespace GrpcClient
             while (await events.ResponseStream.MoveNext())
             {
                 var current = events.ResponseStream.Current;
-                switch (current.MessageCase)
+                if (current.ServiceEvent != null)
                 {
 
-                    case Event.MessageOneofCase.ConnectEvent:
-                        Console.WriteLine(current.ConnectEvent.Context.ConnectionId);
-                        var result = await client.AckConnectEventAsync(new AckConnectEventRequest());
-                        break;
+                }
 
-                    default:
-                        throw new NotSupportedException(events.ResponseStream.Current.MessageCase.ToString());
+                if (current.ConnectionEvent != null)
+                {
+                    switch (current.ConnectionEvent.MessageCase)
+                    {
+                        case ClientConnectionEvent.MessageOneofCase.ConnectEvent:
+                            Console.WriteLine(current.ConnectionEvent.ConnectEvent.Context.ConnectionId);
+                            var sendToAll = new SendToAllRequest();
+                            sendToAll.Payload.Json.StringContent = "{\"hello\": \"world\"}";
+                            await client.SendToAllAsync(sendToAll);
+                            var ack = new ApproveConnectionMessage();
+                            ack.ConnectionId = current.ConnectionEvent.ConnectEvent.ConnectionId;
+                            await client.ApproveConnectionAsync(ack);
+                            break;
+
+                        default:
+                            throw new NotSupportedException(current.ConnectionEvent.MessageCase.ToString());
+                    }
                 }
             }
             Console.WriteLine("Press any key to exit...");
