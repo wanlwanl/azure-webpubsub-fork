@@ -38,5 +38,3 @@ export default class AzureActiveDirectoryExpressMiddlewareBuilder {
     return middleware;
   }
 }
-
-module.exports = new AzureActiveDirectoryExpressMiddlewareBuilder()
