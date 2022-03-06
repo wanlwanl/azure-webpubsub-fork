@@ -7,7 +7,7 @@ import {
   ConnectResponseHandler,
   UserEventRequest,
   UserEventResponseHandler,
-} from "./src/webpubsub-express/index";
+} from "./webpubsub-express/index";
 
 const ClaimTypeRole =
   "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
@@ -140,17 +140,20 @@ export default class ChatHandler extends WebPubSubEventHandler {
     console.log(`${connId} disconnected`);
 
     let groupName = this.connectionDict[connId];
-    let groupContext = this.groupDict[groupName];
-    groupContext?.offline(req.context.userId, req.context.connectionId);
 
-    this.client
-      .group(groupName)
-      .removeConnection(connId)
-      .then(() => {
-        if (groupContext != undefined) {
-          this.client.group(groupName).sendToAll(groupContext.toJSON());
-        }
-      });
+    if (this.groupDict.has(groupName)) {
+      let groupContext = this.groupDict[groupName];
+      groupContext?.offline(req.context.userId, req.context.connectionId);
+
+      this.client
+        .group(groupName)
+        .removeConnection(connId)
+        .then(() => {
+          if (groupContext != undefined) {
+            this.client.group(groupName).sendToAll(groupContext.toJSON());
+          }
+        });
+    }
   }
 
   handleConnect(req: ConnectRequest, res: ConnectResponseHandler) {

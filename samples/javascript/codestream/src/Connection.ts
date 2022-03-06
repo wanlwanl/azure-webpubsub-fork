@@ -8,6 +8,7 @@ const messageSync = 0;
 import Y from "yjs";
 
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
+import { StringUtils } from "@azure/msal-common";
 
 function Arr2Buf(array: Uint8Array): ArrayBuffer {
   return array.buffer.slice(
@@ -35,6 +36,8 @@ class WSSharedDoc extends Y.Doc {
 export class Connection {
   private _client: WebPubSubServiceClient;
 
+  private _group: string;
+
   private _conn: WebSocket;
 
   private _doc: WSSharedDoc;
@@ -42,58 +45,61 @@ export class Connection {
   constructor(client: WebPubSubServiceClient, group: string) {
     this._client = client;
     this._doc = new WSSharedDoc(client, group);
-    this.connect(group);
+    this._group = group;
   }
 
-  async connect(group: string) {
-    let url = await this.negotiate("host", group);
+  async connect() {
+    let url = await this.negotiate("host", this._group);
+    console.log(url)
     let conn = new WebSocket(url);
-
-    function onConnected(e: { connId: string }) {
-      const encoder = encoding.createEncoder();
-      encoding.writeVarUint(encoder, messageSync);
-      syncProtocol.writeSyncStep1(encoder, this.doc);
-      var message = Arr2Buf(encoding.toUint8Array(encoder));
-      this.client.sendToConnection(e.connId, message);
-    }
-
-    function onSyncMessage(e: { connId: string; data: string }) {
-      try {
-        const encoder = encoding.createEncoder();
-        const decoder = decoding.createDecoder(e.data);
-        const messageType = decoding.readVarUint(decoder);
-        switch (messageType) {
-          case messageSync:
-            encoding.writeVarUint(encoder, messageSync);
-            syncProtocol.readSyncMessage(decoder, encoder, this.doc, null);
-            if (encoding.length(encoder) > 1) {
-              this.client.sendToConnection(
-                e.connId,
-                Arr2Buf(encoding.toUint8Array(encoder))
-              );
-            }
-            break;
-        }
-      } catch (err) {
-        console.error(err);
-        this.doc.emit("error", [err]);
-      }
-    }
+    let server = this
 
     conn.onmessage = function (e: { data: string }) {
       let event = JSON.parse(e.data);
+      console.log(event)
 
       if (event.type == "sys.connected") {
-        onConnected(event);
+        server.onConnected(event);
       } else if (event.type == "user.sync") {
-        onSyncMessage(event);
+        server.onSyncMessage(event);
       }
     };
 
     this._conn = conn;
   }
 
-  async negotiate(userId: string, group: string): Promise<string> {
+  private onConnected(e: { connId: string }) {
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, messageSync);
+    syncProtocol.writeSyncStep1(encoder, this._doc);
+    var message = Arr2Buf(encoding.toUint8Array(encoder));
+    this._client.sendToConnection(e.connId, message);
+  }
+
+  private onSyncMessage(e: { connId: string; data: string }) {
+    try {
+      const encoder = encoding.createEncoder();
+      const decoder = decoding.createDecoder(e.data);
+      const messageType = decoding.readVarUint(decoder);
+      switch (messageType) {
+        case messageSync:
+          encoding.writeVarUint(encoder, messageSync);
+          syncProtocol.readSyncMessage(decoder, encoder, this._doc, null);
+          if (encoding.length(encoder) > 1) {
+            this._client.sendToConnection(
+              e.connId,
+              Arr2Buf(encoding.toUint8Array(encoder))
+            );
+          }
+          break;
+      }
+    } catch (err) {
+      console.error(err);
+      this._doc.emit("error", [err]);
+    }
+  }
+
+  private async negotiate(userId: string, group: string): Promise<string> {
     let roles = [
       `webpubsub.sendToGroup.${group}`,
       `webpubsub.joinLeaveGroup.${group}`,

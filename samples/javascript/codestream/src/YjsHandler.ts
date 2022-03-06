@@ -1,11 +1,11 @@
 const encoding = require("lib0/dist/encoding.cjs");
 const decoding = require("lib0/dist/decoding.cjs");
 
-const Y = require("yjs");
 const syncProtocol = require("y-protocols/dist/sync.cjs");
 
+import { Doc } from "yjs";
+
 const messageSync = 0;
-const messageAwareness = 1;
 
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import {
@@ -17,7 +17,9 @@ import {
   UserEventRequest,
   UserEventResponseHandler,
   WebPubSubEventHandler,
-} from "./src/webpubsub-express";
+} from "./webpubsub-express";
+
+import { Connection as ServerConnection } from "./SyncConnection";
 
 function Arr2Buf(array: Uint8Array): ArrayBuffer {
   return array.buffer.slice(
@@ -26,7 +28,7 @@ function Arr2Buf(array: Uint8Array): ArrayBuffer {
   );
 }
 
-class WSSharedDoc extends Y.Doc {
+class WSSharedDoc extends Doc {
   conns: Map<string, ConnectionContext>;
   awareness: any;
 
@@ -48,7 +50,7 @@ class WSSharedDoc extends Y.Doc {
   }
 }
 
-export default class SyncHandler extends WebPubSubEventHandler {
+export default class YjsHandler extends WebPubSubEventHandler {
   doc: WSSharedDoc;
   client: WebPubSubServiceClient;
 
@@ -63,7 +65,6 @@ export default class SyncHandler extends WebPubSubEventHandler {
         this.handleUserEvent(req, res),
     });
     this.client = client;
-
     this.doc = new WSSharedDoc(client);
   }
 
@@ -118,8 +119,13 @@ export default class SyncHandler extends WebPubSubEventHandler {
   }
 
   async negotiate(req: any, res: any) {
-    let token = await this.client.getClientAccessToken({});
-
+    let group = req.query.id ?? "default";
+    let token = await this.client.getClientAccessToken({
+      roles: [
+        `webpubsub.joinLeaveGroup.${group}`,
+        `webpubsub.sendToGroup.${group}.host`,
+      ],
+    });
     res.json({
       url: token.url,
     });
