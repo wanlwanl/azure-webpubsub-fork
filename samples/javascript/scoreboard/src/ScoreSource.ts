@@ -8,6 +8,7 @@ import { MatchTeams } from '@/models/MatchTeams'
 import utils from '@/common/utils'
 import { MatchTeamsPayload } from '@/models/payloads/MatchTeamsPayload'
 import { Guid } from 'js-guid'
+import { event, exception } from 'vue-gtag'
 
 export class ScoreSource {
     private options: ScoreboardSourceOptions
@@ -69,9 +70,11 @@ export class ScoreSource {
             console.log('connect to WebPubSub service: ', url)
 
             this.client = new WebSocket(url, constants.clients.protocol)
+            event('user_activity', { method: 'connect' })
 
             this.client.onopen = () => {
                 console.log('client connected.')
+                event('user_activity', { method: 'connected' })
                 this.getLiveMatchList()
                 this.getPastMatchList()
             }
@@ -98,12 +101,22 @@ export class ScoreSource {
                 }
             }
 
-            this.client.onerror = e => {
+            this.client.onerror = (e: Event) => {
                 console.error('client gets an error: ', e)
+                exception({
+                    description: `Client WebSocket closed. details: ${e}.`,
+                    fatal: true,
+                })
             }
 
             this.client.onclose = e => {
                 console.log('client closes: ', e)
+                if (e) {
+                    exception({
+                        description: `Client WebSocket closed. Type: ${e.type}, code: ${e.code}, reason: ${e.reason}, wasClean: ${e.wasClean}.`,
+                        fatal: true,
+                    })
+                }
             }
         })
     }
