@@ -8,7 +8,7 @@
     (async function () {
       let messages = document.querySelector('#messages');
       let id = prompt('Please input your user name');
-      let res = await fetch(`/negotiate?id=${id}`);
+      let res = await fetch(`negotiate?id=${id}`);
       let data = await res.json();
       let ws = new WebSocket(data.url);
       ws.onopen = () => console.log('connected');

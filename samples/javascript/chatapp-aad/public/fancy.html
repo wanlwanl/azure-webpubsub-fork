@@ -168,7 +168,7 @@
         }
 
         async function connect(client, user, onConnected, onMessage) {
-            let res = await fetch(`/negotiate?id=${user}`);
+            let res = await fetch(`negotiate?id=${user}`);
             let data = await res.json();
             addItem("Connecting..", client.logs);
             try {
@@ -202,7 +202,7 @@
                         client.connection.close();
                         addItem(`${client.userId}:${client.connectionId} disconnected.`, client.logs);
                     }
-                    connect(client, client.endpoint,null,
+                    connect(client, client.endpoint, null,
                         (client, msg) => {
                             let response = JSON.parse(msg.data);
                             if (response.type === "system") {
@@ -217,7 +217,7 @@
                             }
                             else if (response.type === "message") {
                                 let content = response.data;
-                                if (content.type === "system"){
+                                if (content.type === "system") {
                                     addItem({ type: "system", content: content.message }, client.chat.messages);
                                 }
                                 else if (client.userId && content.from === client.userId)
