@@ -10,7 +10,14 @@ import { IsWideDevice } from '@site/src/utils/CssUtils'
 
 export default function Banner() {
   const isWide = IsWideDevice()
-  const imageSource = `/img/banner-${isWide ? 'desktop' : 'mobile'}-1.png`
+  const imageSource = (index: number) => `/img/banner-${isWide ? 'desktop' : 'mobile'}-${index}.jpg`
+
+  const slides = [1, 2, 3, 4].map(ind => (
+    <SwiperSlide>
+      <img src={imageSource(ind)} className={styles.bannerImage}></img>
+    </SwiperSlide>
+  ))
+
   return (
     <Swiper
       slidesPerView={1}
@@ -22,12 +29,7 @@ export default function Banner() {
       navigation={isWide}
       modules={[Pagination, Navigation]}
     >
-      <SwiperSlide>
-        <img src={imageSource} className={styles.bannerImage}></img>
-      </SwiperSlide>
-      <SwiperSlide>
-        <img src={imageSource} className={styles.bannerImage}></img>
-      </SwiperSlide>
+      {slides}
     </Swiper>
   )
 }
