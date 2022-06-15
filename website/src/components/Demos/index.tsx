@@ -4,9 +4,15 @@ import { Stack, MessageBar, MessageBarType, MessageBarButton, Checkbox } from '@
 import DemoCard from './DemoCard'
 import * as styles from './styles.module'
 
-export default function Demos(): JSX.Element {
+export interface DemosProps {
+  hidden: boolean
+}
+
+export default function Demos(props: DemosProps): JSX.Element {
+  const style = {}
+  if (props.hidden) style['display'] = 'none'
   return (
-    <div>
+    <div style={style}>
       <MessageBar
         messageBarType={MessageBarType.info}
         actions={<MessageBarButton>Tell us</MessageBarButton>}

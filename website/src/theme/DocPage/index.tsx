@@ -9,6 +9,8 @@ import styles from './styles.module.css'
 import { HtmlClassNameProvider, ThemeClassNames, docVersionSearchTag, DocsSidebarProvider, DocsVersionProvider } from '@docusaurus/theme-common'
 import SearchMetadata from '@theme/SearchMetadata'
 import Introduction from '@site/src/components/Introduction'
+import Demos from '@site/src/components/Demos'
+import { MessageBar, Stack } from '@fluentui/react'
 
 function DocPageContent({ versionMetadata, children }) {
   const { pluginId, version } = versionMetadata
@@ -17,7 +19,8 @@ function DocPageContent({ versionMetadata, children }) {
     <>
       <SearchMetadata version={version} tag={docVersionSearchTag(pluginId, version)} />
       <Layout>
-        <Introduction></Introduction>
+        <Introduction hidden={false}></Introduction>
+        <Demos hidden={true}></Demos>
         <div className={styles.docPage}>
           <BackToTopButton />
           <main className={clsx(styles.docMainContainer, styles.docMainContainerEnhanced)}>

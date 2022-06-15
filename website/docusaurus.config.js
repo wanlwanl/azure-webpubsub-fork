@@ -6,7 +6,7 @@ const config = {
   title: 'Demos for Azure Web PubSub Service',
   url: '/azure-webpubsub',
   baseUrl: '/',
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
   favicon: 'img/favicon.ico',
   organizationName: 'microsoft',
